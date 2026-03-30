@@ -1,0 +1,72 @@
+services:
+
+  # ==================== BANCO DE DADOS ====================
+  pgsql:
+    image: postgres:17-alpine
+    container_name: revisoes-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: revisoes_veiculos
+      POSTGRES_USER: sail
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+    networks:
+      - revisoes-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "sail", "-d", "revisoes_veiculos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==================== BACKEND (Laravel/PHP) ====================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: revisoes-backend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: revisoes_veiculos
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      pgsql:
+        condition: service_healthy
+    networks:
+      - revisoes-network
+
+  # ==================== FRONTEND (Node/Vite) ====================
+  frontend:
+    image: node:20-alpine
+    container_name: revisoes-frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    depends_on:
+      - backend
+    networks:
+      - revisoes-network
+
+networks:
+  revisoes-network:
+    driver: bridge
+
+volumes:
+  pgsql_data:
+    driver: local
