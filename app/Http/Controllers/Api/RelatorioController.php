@@ -20,7 +20,8 @@ class RelatorioController extends Controller
         $dados = Cache::remember('relatorio.veiculos.todos', 300, function () {
             return Veiculo::with('usuario')
                 ->select('mathews.veiculos.*')
-                ->get();
+                ->get()
+                ->toArray();
         });
 
         return response()->json($dados);
@@ -33,7 +34,8 @@ class RelatorioController extends Controller
             return Usuario::with('veiculos')
                 ->withCount('veiculos')
                 ->orderBy('nome')
-                ->get();
+                ->get()
+                ->toArray();
         });
 
         return response()->json($dados);
@@ -105,7 +107,8 @@ class RelatorioController extends Controller
         $dados = Cache::remember('relatorio.pessoas.todas', 300, function () {
             return Usuario::withCount('veiculos')
                 ->orderBy('nome')
-                ->get();
+                ->get()
+                ->toArray();
         });
 
         return response()->json($dados);
